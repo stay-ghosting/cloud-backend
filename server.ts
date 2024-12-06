@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { Server } from 'socket.io';
 import dotenv from "dotenv";
-import cors from 'cors';
+import cors from 'cors'; ` `
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: "http://localhost:5173", // Frontend URL
+  origin: "http://localhost:5173",
 }));
 
 let updateNumber = 0;
