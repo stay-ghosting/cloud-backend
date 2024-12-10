@@ -22,17 +22,20 @@ app.use(cors({
 }));
 
 let updateNumber = 0;
+let canvasData: any[] = [];
 
 app.use(express.static('public'));
 
 io.on('connection', (socket: Socket) => {
   console.log('a user connected');
 
+  socket.emit("initialise-canvas", canvasData);
+
   socket.on('update-canvas', (data: any) => {
     updateNumber++
     console.log("canvas update " + updateNumber);
-
-    socket.broadcast.emit('update-canvas', data);
+    canvasData = data
+    socket.broadcast.emit('update-canvas', canvasData);
   });
 
   socket.on('disconnect', () => {
