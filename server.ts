@@ -36,6 +36,7 @@ let canvasData: any[] = [];
 
 redisSubscriber.subscribe("canvas-updates", (message) => {
   const updatedCanvasData = JSON.parse(message);
+
   io.emit("update-canvas", updatedCanvasData);
 });
 
