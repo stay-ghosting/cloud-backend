@@ -7,16 +7,19 @@ dotenv.config();
 
 const express = require('express');
 const http = require('http');
+if (!(process.env.ETCD_HOST && process.env.CLIENT_URL)) {
+  throw new Error("Missing ETCD_HOST or CLIENT_URL");
+}
 
 const client = new Etcd3({
-  hosts: process.env.ETCD_HOST || 'http://localhost:2379',
+  hosts: process.env.ETCD_HOST,
 });
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
   },
 });
 
@@ -28,7 +31,7 @@ const getCanvasDataFromETCD = async () => {
     return result ? JSON.parse(result) : { updatedElements: [], authorClientId: "Server" };
   } catch (err) {
     console.error("Error retrieving canvas data from ETCD:", err);
-    return [];
+    return { updatedElements: [], authorClientId: "Server" };
   }
 };
 
