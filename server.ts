@@ -32,7 +32,7 @@ app.use(cors({
 }));
 
 let updateNumber = 0;
-let canvasData: any[] = [];
+let canvasData = { updatedElements: [], authorClientId: "" };
 
 redisSubscriber.subscribe("canvas-updates", (message) => {
   const updatedCanvasData = JSON.parse(message);
