@@ -49,7 +49,7 @@ io.on("connection", async (socket) => {
 
   const initialCanvasData = await getCanvasDataFromETCD();
 
-  socket.emit("initialise-canvas", { updatedElements: initialCanvasData, authorClientId: "server" });
+  socket.emit("initialise-canvas", { updatedElements: initialCanvasData.updatedElements, authorClientId: "server" });
 
   socket.on("update-canvas", async (data) => {
     updateNumber++;
