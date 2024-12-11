@@ -1,23 +1,16 @@
-import { Socket } from "socket.io";
 import { Server } from 'socket.io';
-import dotenv from "dotenv";
-import cors from 'cors';
-import { createClient } from 'redis';
+import { Etcd3 } from 'etcd3';
+import dotenv from 'dotenv';
+import { log } from 'console';
 
 dotenv.config();
 
 const express = require('express');
 const http = require('http');
 
-const redisPublisher = createClient({
-  url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
+const client = new Etcd3({
+  hosts: process.env.ETCD_HOST || 'http://localhost:2379',
 });
-const redisSubscriber = createClient({
-  url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
-});
-
-redisPublisher.connect().catch((err) => console.error("Redis Publisher Error:", err));
-redisSubscriber.connect().catch((err) => console.error("Redis Subscriber Error:", err));
 
 const app = express();
 const server = http.createServer(app);
@@ -27,30 +20,43 @@ const io = new Server(server, {
   },
 });
 
-app.use(cors({
-  origin: "http://localhost:5173",
-}));
-
 let updateNumber = 0;
-let canvasData = { updatedElements: [], authorClientId: "" };
 
-redisSubscriber.subscribe("canvas-updates", (message) => {
-  const updatedCanvasData = JSON.parse(message);
+const getCanvasDataFromETCD = async () => {
+  try {
+    const result = await client.get('canvas-data').string();
+    return result ? JSON.parse(result) : { updatedElements: [], authorClientId: "Server" };
+  } catch (err) {
+    console.error("Error retrieving canvas data from ETCD:", err);
+    return [];
+  }
+};
 
-  io.emit("update-canvas", updatedCanvasData);
-});
+const setCanvasDataInETCD = async (canvasData: any[]) => {
+  try {
+    await client.put('canvas-data').value(JSON.stringify(canvasData));
+    return canvasData;
+  } catch (err) {
+    console.error("Error saving canvas data to ETCD:", err);
+    return null;
+  }
+};
 
-io.on("connection", (socket: Socket) => {
+io.on("connection", async (socket) => {
   console.log("A user connected");
 
-  socket.emit("initialise-canvas", canvasData);
+  const initialCanvasData = await getCanvasDataFromETCD();
 
-  socket.on("update-canvas", (data: any) => {
+  socket.emit("initialise-canvas", { updatedElements: initialCanvasData, authorClientId: "server" });
+
+  socket.on("update-canvas", async (data) => {
     updateNumber++;
     console.log(`Canvas update #${updateNumber}`);
-    canvasData = data;
+    const result = await setCanvasDataInETCD(data);
 
-    redisPublisher.publish("canvas-updates", JSON.stringify(canvasData));
+    if (result) {
+      io.emit("update-canvas", result);
+    }
   });
 
   socket.on("disconnect", () => {
