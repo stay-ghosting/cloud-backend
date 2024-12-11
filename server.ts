@@ -1,7 +1,6 @@
 import { Server } from 'socket.io';
 import { Etcd3 } from 'etcd3';
 import dotenv from 'dotenv';
-import { log } from 'console';
 
 dotenv.config();
 
